@@ -24,7 +24,7 @@ async function setup() {
     BillingMode: "PAY_PER_REQUEST",
   })); } catch (e: any) { if (e.name !== "ResourceInUseException") throw e; }
 
-  try { await s3.send(new CreateBucketCommand({ Bucket: "todo-attachments" })); } catch (e: any) { if (e.name !== "BucketAlreadyOwnedByYou") throw e; }
+  try { await s3.send(new CreateBucketCommand({ Bucket: "todo-attachments" })); } catch { /* bucket may already exist */ }
 
   const topic = await sns.send(new CreateTopicCommand({ Name: "todo-completed" }));
   topicArn = topic.TopicArn!;
