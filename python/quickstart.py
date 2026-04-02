@@ -23,13 +23,19 @@ def main():
 
     # 1. Create resources
     print("Creating AWS resources...")
-    dynamodb.create_table(
-        TableName="todos",
-        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    s3.create_bucket(Bucket="todo-attachments")
+    try:
+        dynamodb.create_table(
+            TableName="todos",
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+    except dynamodb.exceptions.ResourceInUseException:
+        pass
+    try:
+        s3.create_bucket(Bucket="todo-attachments")
+    except Exception:
+        pass
     topic = sns.create_topic(Name="todo-completed")
     topic_arn = topic["TopicArn"]
     queue = sqs.create_queue(QueueName="todo-notifications")

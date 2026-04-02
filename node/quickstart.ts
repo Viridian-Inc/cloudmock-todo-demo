@@ -18,13 +18,13 @@ async function main() {
 
   // 1. Create resources
   console.log("Creating AWS resources...");
-  await dynamodb.send(new CreateTableCommand({
+  try { await dynamodb.send(new CreateTableCommand({
     TableName: "todos",
     KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
     AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
     BillingMode: "PAY_PER_REQUEST",
-  }));
-  await s3.send(new CreateBucketCommand({ Bucket: "todo-attachments" }));
+  })); } catch (e: any) { if (e.name !== "ResourceInUseException") throw e; }
+  try { await s3.send(new CreateBucketCommand({ Bucket: "todo-attachments" })); } catch (e: any) { if (e.name !== "BucketAlreadyOwnedByYou") throw e; }
   const { TopicArn } = await sns.send(new CreateTopicCommand({ Name: "todo-completed" }));
   const { QueueUrl } = await sqs.send(new CreateQueueCommand({ QueueName: "todo-notifications" }));
   const { Attributes } = await sqs.send(new GetQueueAttributesCommand({ QueueUrl, AttributeNames: ["QueueArn"] }));
