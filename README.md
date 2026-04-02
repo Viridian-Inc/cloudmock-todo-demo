@@ -31,7 +31,7 @@ Then pick your language:
 | **Python** | `cd python && pip install -r requirements.txt && python quickstart.py` | `cd python && pip install -r requirements.txt && python server/app.py` |
 | **Go** | `cd go && go run quickstart.go` | `cd go && go run server/main.go` |
 
-Open **http://localhost:4500** to see every request in the CloudMock DevTools.
+Open **http://localhost:3000** for the web UI, or **http://localhost:4500** for CloudMock DevTools.
 
 ## What It Does
 

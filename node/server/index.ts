@@ -1,9 +1,11 @@
 import express from "express";
 import { DynamoDBClient, CreateTableCommand, PutItemCommand, GetItemCommand, UpdateItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
-import { S3Client, CreateBucketCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, CreateBucketCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { SNSClient, CreateTopicCommand, SubscribeCommand, PublishCommand } from "@aws-sdk/client-sns";
 import { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, ReceiveMessageCommand, DeleteMessageCommand } from "@aws-sdk/client-sqs";
 import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const endpoint = process.env.CLOUDMOCK_ENDPOINT || "http://localhost:4566";
 const config = { region: "us-east-1", endpoint, credentials: { accessKeyId: "test", secretAccessKey: "test" } };
@@ -37,6 +39,13 @@ async function setup() {
 }
 
 const app = express();
+app.use((_req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (_req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 app.use(express.json());
 
 app.post("/todos", async (req, res) => {
@@ -71,6 +80,19 @@ app.get("/todos/:id", async (req, res) => {
     id: Item.id.S, title: Item.title.S, description: Item.description?.S,
     status: Item.status.S, imageKey: Item.imageKey?.S, createdAt: Item.createdAt.S,
   });
+});
+
+app.get("/todos/:id/image", async (req, res) => {
+  const imageKey = `todos/${req.params.id}/image.jpg`;
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: "todo-attachments", Key: imageKey }));
+    res.header("Content-Type", obj.ContentType || "image/jpeg");
+    const chunks: Buffer[] = [];
+    for await (const chunk of obj.Body as any) chunks.push(chunk);
+    res.send(Buffer.concat(chunks));
+  } catch {
+    res.status(404).json({ error: "No image" });
+  }
 });
 
 app.put("/todos/:id/image", express.raw({ type: "image/*", limit: "10mb" }), async (req, res) => {
@@ -115,6 +137,9 @@ app.get("/notifications", async (_req, res) => {
   res.json(notifications);
 });
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+app.use(express.static(join(__dirname, "../../web")));
+
 setup().then(() => {
-  app.listen(3000, () => console.log("Todo API running on http://localhost:3000"));
+  app.listen(3000, () => console.log("Todo API running on http://localhost:3000\nWeb UI:  http://localhost:3000"));
 });
